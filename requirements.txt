@@ -3,13 +3,10 @@ uvicorn
 sqlalchemy
 sqlmodel
 psycopg2-binary
-chromadb
 networkx
 pydantic
 python-multipart
 httpx
-openai
 groq
 pdfplumber
-sentence-transformers
 python-dotenv
