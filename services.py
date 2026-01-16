@@ -15,15 +15,41 @@ embedding_model = MockEmbeddingModel()
 
 # Mock ChromaDB client for Vercel compatibility
 class MockChromaClient:
+    def __init__(self):
+        self.collections = {}
+    
     def get_or_create_collection(self, name):
-        return MockCollection()
+        if name not in self.collections:
+            self.collections[name] = MockCollection()
+        return self.collections[name]
+    
+    def get_collection(self, name):
+        """Get existing collection or return empty mock collection"""
+        return self.collections.get(name, MockCollection())
 
 class MockCollection:
-    def add(self, ids, documents, embeddings):
-        pass
+    def __init__(self):
+        self.data = {}
+    
+    def add(self, ids, documents, embeddings, metadatas=None):
+        """Store chunks with their embeddings"""
+        for i, doc_id in enumerate(ids):
+            self.data[doc_id] = {
+                "document": documents[i] if i < len(documents) else "",
+                "embedding": embeddings[i] if i < len(embeddings) else None,
+                "metadata": metadatas[i] if metadatas and i < len(metadatas) else {}
+            }
     
     def query(self, query_embeddings, n_results):
-        return {"documents": [[]], "metadatas": [[]]}
+        """Return dummy results matching ChromaDB format"""
+        if not self.data:
+            return {"documents": [[]], "metadatas": [[]]}
+        
+        # Return all stored documents (simplified - no actual embedding similarity)
+        docs = [item["document"] for item in self.data.values()][:n_results]
+        metadata = [item["metadata"] for item in self.data.values()][:n_results]
+        
+        return {"documents": [docs], "metadatas": [metadata]}
 
 chroma_client = MockChromaClient()
 
