@@ -66,20 +66,51 @@ async def upload_document(file: UploadFile = File(...)):
         file_id = str(uuid.uuid4())
         filename = f"{file_id}_{file.filename}"
         
-        # On Vercel, we can't write to filesystem, so we just process in-memory
-        # In production, this would integrate with a proper storage service
-        # For now, return success with the file metadata
-        
-        # Extract text content for embedding (simplified)
+        # Extract text content (handle both text and binary files)
         try:
-            text_content = content.decode('utf-8')
-        except:
-            text_content = f"Binary file: {file.filename}"
+            if file.filename.endswith('.pdf'):
+                # For PDFs, try to extract text (pdfplumber would be ideal but just get raw content)
+                import pdfplumber
+                from io import BytesIO
+                text_content = ""
+                try:
+                    pdf_file = BytesIO(content)
+                    with pdfplumber.open(pdf_file) as pdf:
+                        for page in pdf.pages:
+                            page_text = page.extract_text()
+                            if page_text:
+                                text_content += page_text + "\n"
+                except:
+                    text_content = content.decode('utf-8', errors='ignore')
+            else:
+                # For text files
+                text_content = content.decode('utf-8', errors='ignore')
+        except Exception as e:
+            text_content = f"File: {file.filename}"
+        
+        # Store the document in the mock chroma collection
+        if text_content and text_content.strip():
+            from services import chroma_client, embedding_model
+            
+            # Create collection with file_id as the collection name
+            collection_name = f"col_{file_id}"
+            collection = chroma_client.get_or_create_collection(name=collection_name)
+            
+            # Generate embedding for the document
+            embeddings = embedding_model.encode([text_content])
+            
+            # Store in collection
+            collection.add(
+                ids=["doc_0"],
+                documents=[text_content],
+                embeddings=embeddings,
+                metadatas=[{"filename": file.filename, "type": "uploaded_document"}]
+            )
         
         return {
             "filename": filename,
             "vector_collection_id": file_id,
-            "message": "Document uploaded successfully",
+            "message": "Document uploaded and processed successfully",
             "size": len(content),
             "content_type": file.content_type
         }

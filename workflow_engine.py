@@ -66,17 +66,25 @@ class WorkflowEngine:
                 results['query'] = self.query
 
             elif node_type == NodeType.KNOWLEDGE_BASE:
-                collection_id = node.data.config.get('vector_collection_id')
+                # Get collection ID from node config (could be vector_collection_id or documentId)
+                collection_id = node.data.config.get('vector_collection_id') or node.data.config.get('documentId')
                 print(f"DEBUG: Knowledge Base Node - collection_id: {collection_id}")
                 print(f"DEBUG: Node config: {node.data.config}")
                 
                 if collection_id:
                     yield "status: Querying knowledge base...\n\n"
+                    # Construct collection name (should match what was created during upload)
+                    # The upload endpoint creates collections as "col_{file_id}"
+                    if not collection_id.startswith('col_'):
+                        collection_name = f"col_{collection_id}"
+                    else:
+                        collection_name = collection_id
+                    
                     # Query ChromaDB with user query
                     user_query = results.get('query', '')
-                    print(f"DEBUG: Querying with: {user_query}")
-                    context = query_knowledge_base(collection_id, user_query, top_k=3)
-                    print(f"DEBUG: Retrieved context: {context[:200]}...")
+                    print(f"DEBUG: Querying collection: {collection_name} with query: {user_query}")
+                    context = query_knowledge_base(collection_name, user_query, top_k=3)
+                    print(f"DEBUG: Retrieved context: {context[:200] if context else 'Empty'}...")
                     results['context'] = context
                 else:
                     yield "status: No document uploaded to knowledge base\n\n"
