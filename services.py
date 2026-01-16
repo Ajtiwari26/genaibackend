@@ -8,8 +8,11 @@ import pdfplumber
 
 # Mock embedding model for Vercel compatibility
 class MockEmbeddingModel:
-    def encode(self, text):
-        return [0.0] * 384  # Return dummy embedding
+    def encode(self, texts):
+        """Return mock embeddings - list of lists for each text"""
+        if isinstance(texts, str):
+            texts = [texts]
+        return [[0.0] * 384 for _ in texts]  # Return list of embeddings
 
 embedding_model = MockEmbeddingModel()
 
@@ -129,7 +132,10 @@ class IngestionService:
             print(f"Extracted {len(full_text)} characters, created {len(chunks)} chunks")
             
             # Generate embeddings
-            embeddings = embedding_model.encode(chunks).tolist()
+            embeddings = embedding_model.encode(chunks)
+            # Ensure embeddings is a list of lists
+            if embeddings and not isinstance(embeddings[0], list):
+                embeddings = [[0.0] * 384 for _ in range(len(chunks))]  # Return list of embeddings
             
             # Validate embeddings
             if not embeddings or len(embeddings) == 0:
@@ -176,7 +182,9 @@ def query_knowledge_base(collection_name: str, query: str, top_k: int = 3) -> st
         collection = chroma_client.get_collection(name=collection_name)
         
         # Generate query embedding
-        query_embedding = embedding_model.encode([query])[0].tolist()
+        query_embedding = embedding_model.encode([query])
+        if isinstance(query_embedding, list) and len(query_embedding) > 0:
+            query_embedding = query_embedding[0] if isinstance(query_embedding[0], list) else query_embedding
         
         # Query ChromaDB
         results = collection.query(
