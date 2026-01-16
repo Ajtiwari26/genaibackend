@@ -23,7 +23,8 @@ origins = [
     "http://localhost:5173",
     "http://localhost:5174",
     "http://localhost:5175",
-    "https://genai-khaki.vercel.app"
+    "https://genai-khaki.vercel.app",
+    "https://genaibackend-api.vercel.app"
 ]
 
 app.add_middleware(
