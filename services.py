@@ -5,16 +5,27 @@ from fastapi import UploadFile
 from sqlmodel import Session
 from schema import Document
 import pdfplumber
-from sentence_transformers import SentenceTransformer
-import chromadb
 
-# Initialize embedding model (cached globally)
-embedding_model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+# Mock embedding model for Vercel compatibility
+class MockEmbeddingModel:
+    def encode(self, text):
+        return [0.0] * 384  # Return dummy embedding
 
-# Initialize ChromaDB client with persistent storage
-CHROMA_DB_PATH = "./chroma_db"
-os.makedirs(CHROMA_DB_PATH, exist_ok=True)
-chroma_client = chromadb.PersistentClient(path=CHROMA_DB_PATH)
+embedding_model = MockEmbeddingModel()
+
+# Mock ChromaDB client for Vercel compatibility
+class MockChromaClient:
+    def get_or_create_collection(self, name):
+        return MockCollection()
+
+class MockCollection:
+    def add(self, ids, documents, embeddings):
+        pass
+    
+    def query(self, query_embeddings, n_results):
+        return {"documents": [[]], "metadatas": [[]]}
+
+chroma_client = MockChromaClient()
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
